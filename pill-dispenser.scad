@@ -1,13 +1,14 @@
 include <raspberry-pie-mount.scad>
 include <raspberry-pie-model.scad>
+include <spiral.scad>
 /**
  * Terms
  * cartridge - A cylindrical segmented container designed to hold pills.
- * 					The catridge is designed to be directly connected to a
+ * 					The cartridge is designed to be directly connected to a
  *					motor which rotates the cartridge within the enclosing
  *					cansiter.
- * 					The cartridge has draw_depth segmented wedges. 14 of the wedges can 
- * 					hold a number of pills. The draw_depth segment is used to aid
+ * 					The cartridge has drawer_depth segmented wedges. 14 of the wedges can 
+ * 					hold a number of pills. The drawer_depth segment is used to aid
  * 					alignment when inserting the cansiter into the pill collector.
  * canister - pill holding unit consisting of the cansister enclosure and 
  * 				a cartridge that is inserted into the enclosure.
@@ -21,16 +22,32 @@ ANTICLOCKWISE=-1;
 FILL=1;
 NOFILL=0;
 
+// controls what we want to draw by commenting out the lines
+// of those entities that you want drawn.
+// By default we draw everything.
+show_shell = false;
+show_shell_base = false;
+show_inner_shell = true;
+show_cartridge = true;
+show_cartridge_lid = true;
+show_cartridge_hub = true;
+show_motor_connector = true;
+show_motor = true;
+show_pie = true;
+show_pie_mount = true;
+show_drawer = true;
+show_collector = true;
+show_dump_bridge = true;
+show_pill_chute = true;
+show_dump_chute = true;
+
+
 // diameter of the outer body cylinder
 gap=0.5;
 overlap = 1; // used to overlap to object that must be joined.
 wall_width=3;
-body_radius = 80;
-catridge_lid_radius = body_radius-wall_width-gap;
-catridge_radius = catridge_lid_radius-wall_width*2-gap;
-
-// the hieght of the bottom of the cartridge
-catride_base_height=160;
+outer_shell_radius = 80;
+outer_shell_height=160;
 
 pie_mount_height=80;
 pie_mount_width = 50;
@@ -38,142 +55,210 @@ pie_mount_width = 50;
 spiral_width = 35;
 spiral_height = 120;
 
-body_height=160;
+dump_bridge_height = spiral_height-13;
+
+
+
+cartridge_lid_radius = outer_shell_radius-wall_width-gap;
+cartridge_radius = cartridge_lid_radius-wall_width*2-gap;
+
+// the hieght of the bottom of the cartridge
+cartridge_lid_base=spiral_height;
+
+inner_shell_radius=outer_shell_radius-spiral_width+gap*2;
+inner_shell_height=cartridge_lid_base-gap;
+
 
 collector_end_radius=37;
-collector_centre_width=body_radius/2;
+collector_centre_width=outer_shell_radius/2;
 
 
 
 prong_height=10;
 prong_radius = 4;
 
-hub_radius = (catridge_radius+2)/3;
+hub_radius = (cartridge_radius+2)/3;
 
 // the .25 is so the raised hub is slight smaller than the lid whole
 raised_hub_radius = hub_radius-4.25;
 
 canister_height=43;
-catridge_height=38;
+cartridge_height=38;
 
-motor_shaft_radius=2;
+// The height of the motor from the base of the shell
 
-bob();
+motor_height=72;
+motor_radius = 12.5;
+motor_collar_height =4;
+motor_collar_radius =4;
+motor_shaft_height = 20;
+motor_shaft_radius=2;	
+motor_base = dump_bridge_height-motor_height+10;
 
-module bob()
+function saw(t) = 1 - 2*abs(t-0.5);
+
+whole_unit();
+
+
+module whole_unit()
 {
-	draw_depth=30;
-	draw_width=60;
 	
-	translate([-10,0,draw_depth+wall_width])
-	rotate([0,180,0])
-	difference()
-	{
-	/*
-	 * outer draw.
-	 */ 
-		
-		difference()
-		{
-			translate([0,-draw_width/2,0])
-			cube([85,draw_width,draw_depth]);
-			//overlap*2
-			translate([0,0,-overlap])
-			difference	()
-			{											 
-				cylinder(r=100,h=draw_depth+overlap*2);
-				cylinder(r=75,h=draw_depth);
-			}
-			translate([0,0,-overlap])
-			cylinder(r=hub_radius,h=draw_depth+overlap*2);
-		}
+	body();
 	
-	/*
-	 * Inner draw.
-	 */
-		
-			difference()
-		{
-			translate([0+wall_width,-draw_width/2+wall_width,-overlap])
-			cube([85-wall_width*2,draw_width-wall_width*2,draw_depth+overlap-wall_width]);
-			//overlap*2
-			translate([0,0,-overlap])
-			difference	()
-			{											 
-				cylinder(r=87,h=draw_depth+overlap*2);
-				cylinder(r=75-wall_width,h=draw_depth);
-			}
-			translate([0,0,-overlap])
-			cylinder(r=hub_radius+wall_width,h=draw_depth+overlap*2);
-		}
-	}
+	//translate([100,400,0])
+	//rotate([0,0,30])
+	cartridge_assembly();
+
+	if (show_drawer)
+		translate([saw($t)*-50,0,0])
+		drawer();
+
 }
 
-//translate([100,400,0])
-pill_tray();
-
-body();
-
-
-module pill_tray()
+/**
+ * the cartridge lid and the cartridge along with fork motor connector 
+ * and the hub cap for the cartridge.
+ */
+module cartridge_assembly()
 {
 
-	translate([0,0,130])
-	rotate([180,0,0])
-	fork_connector();
+	if (show_motor_connector)
+		translate([0,0,dump_bridge_height+25])
+		rotate([180,0,saw($t)*180])
+		motor_connector();
 
-	translate([0,0,250])
-	rotate([180,0,0])
-	cartridge();
+	if (show_cartridge)
+		translate([0,0,250])
+		rotate([180,0,saw($t)*180])
+		cartridge();
 
-	translate([0,0,200])
-	cartridge_hub_cap();
+	if (show_cartridge_hub)
+		rotate([0,0,saw($t)*180])
+		translate([0,0,200])
+		cartridge_hub_cap();
 
-	translate([0,0,catride_base_height+25])
-	rotate([180,0,-79])
-	catridge_lid();
+	if (show_cartridge_lid)
+		translate([0,0,cartridge_lid_base])
+		cartridge_lid();
 }
 
 
 
 module body()
 {
-	%shell(1);
+	if (show_shell)
+		shell();
+	if (show_inner_shell)
+		inner_shell();
 	
-	// place the collelctor carving a whole for the end of the pill chute.
-	difference()
-	{
-		translate([body_radius, 20,collector_end_radius])
-		collector();
-		place_chute(FILL);
-	}
+	// place the collector carving a whole for the end of the pill chute.
+	
+	if (show_collector)
+		difference()
+		{
+			translate([outer_shell_radius, 20,collector_end_radius])
+			collector();
+			place_chute(FILL);
+		}
 
 	// place the pill chute carving it to the sape of the collector
-	difference()
-	{
-		place_chute(NOFILL);
-		carve_collector();
-	}
+	if (show_pill_chute)
+		difference()
+		{
+			place_chute(NOFILL);
+			carve_collector();
+		}
 
 	// place the dump chute carving it to the sape of the collector
-//	difference()
-//	{
-//		pill_chute(NOFILL);
-//	}
-//
+	if (show_dump_chute)
+	{
+		rotate([0,0,-20])
+		translate([0,0,40])
+		dump_chute(CLOCKWISE, NOFILL);
+	}
 
 	// place the dump bridge
-	translate([0,-spiral_width-10,spiral_height-13])
-	dump_bridge(-32);
+	if (show_dump_bridge)
+	{
+		translate([0,-spiral_width-10,dump_bridge_height])
+		dump_bridge(-32);
+	}
 
 	// place the rapberry pie mount.
-	pie();
+	if (show_pie)
+		pie();
 
 	// place the motor
-	motor();
+	if (show_motor)
+		translate([0,0,motor_base])
+		motor();
 
 
 }
+
+module dump_chute(clockwise, fill)
+{
+	bottom = 25;
+	height = 50;
+	steps=40;		// increase to get a smoother spiral
+	rotation=60; // degrees of rotation for spiral
+
+	if (fill == NOFILL)
+		spiral_tube(height, steps, spiral_width, 1, rotation
+			, outer_shell_radius-spiral_width/2-overlap,clockwise);
+	else
+		spiral_tube(height, steps, spiral_width, spiral_width/2, rotation
+			, outer_shell_radius-spiral_width/2-overlap,clockwise);
+	
+	// domed mouth of pill collector
+	translate([0, -(outer_shell_radius-spiral_width/2)+1, height+7-overlap])
+	difference()
+	{
+		sphere(r=spiral_width/2+2);
+		if (fill == NOFILL)
+		{
+			sphere(r=spiral_width/2-wall_width+1);
+		}
+		// clip the sphere to:
+
+		//  open it to the drop bridge 
+		rotate([0,75,0])
+		cylinder(r=spiral_width,h=spiral_width+overlap);
+
+		//  open it to the spiral tube
+		translate([0,0,-7])
+		rotate([0,-180,0])
+		cylinder(r=spiral_width,h=spiral_width+overlap);
+
+	}
+
+	// blocking wall above doomed mouth.
+	// The blocking wall runs from the inner shell to the outer shell
+	// closing the gap above the doomed mouth so that pills can't bounce out
+	// above it.
+	
+	difference()
+	{
+	translate([-wall_width/2,-(outer_shell_radius-wall_width/2)
+		,height //+ bottom-dome_radius
+		//  
+	])
+	rotate([0,-15,0])
+	cube([wall_width
+		, outer_shell_radius-inner_shell_radius + wall_width
+		, cartridge_lid_base - (height + bottom + 15)
+]);
+
+		// fit the base of the blocking wall to the dome.
+		translate([0, -(outer_shell_radius-spiral_width/2)+1, height+7-overlap])
+		sphere(r=spiral_width/2-wall_width+1);
+
+	}
+
+}
+
+
+
 
 module place_chute(fill)
 {
@@ -185,69 +270,26 @@ module place_chute(fill)
 }
 
 
-/**
- * Draws a spiral. The top spiral (stair) is aligned with the x-axis
- *  with the spiral wrapping around the z-axis towards the y-axis if 
- *  the spiral is clockwise or the -ve y-axis if the spiral is counter-clockwise.
- * The spiral is drawn as a series of steps. If there are enough stairs
- * then the spiral looks smooth.
- *
- * height - the hight of the spiral
- * steps - the more steps the finer the spiral and the longer it takes to draw.
- * width - the width of the spiral (the stairs)
- * thickness - the thickness of the spiral (under the stair tread if you like).
- * rotation - the degrees the spiral turns from top to the bottom.
- * internal radius - the radius from the z-axis to the inner edge of the
- * 		spiral (i.e. the clear space between the z-axis and the edge of the spiral.
- * 		Use zero for a spiral that goes to the centre of the z-axis.
- * clockwise - direction of the spiral 1 for clockwise -1 for anticlockwise
- */
-
-module spiral_tube(height, steps, width, thickness, rotation, internal_radius, clockwise)
-{	
-	step_height = height/steps;
-	step_rotation = rotation/steps ;
-	
-	translate([0,0,height])
-	{
-		difference()
-		{
-			for ( z = [1:steps]) 
-			{
-				rotate(z*step_rotation*-clockwise) 
-				translate([0,-internal_radius,-z*step_height])
-				
-				difference()
-				{
-					cylinder(r=width/2,h=step_height+.3);
-					translate([0,0,-overlap])
-					cylinder(r=width/2-thickness, h=step_height+overlap*2);
-				}
-			}
-		}
-	}
-
-}
-
 module pill_chute(clockwise, fill)
 {
 	bottom = 25;
 	height = 60;
 	steps=40;		// increase to get a smoother spiral
 	rotation=60; // degrees of rotation for spiral
+	dome_radius = spiral_width/2+2;
 
 	if (fill == NOFILL)
 		spiral_tube(height, steps, spiral_width, 1, rotation
-			, body_radius-spiral_width/2-overlap,clockwise);
+			, outer_shell_radius-spiral_width/2-overlap,clockwise);
 	else
 		spiral_tube(height, steps, spiral_width, spiral_width/2, rotation
-			, body_radius-spiral_width/2-overlap,clockwise);
+			, outer_shell_radius-spiral_width/2-overlap,clockwise);
 	
 	// domed mouth of pill collector
-	translate([0, -(body_radius-spiral_width/2)+1, height+7-overlap])
+	translate([0, -(outer_shell_radius-spiral_width/2)+1, height+7-overlap])
 	difference()
 	{
-		sphere(r=spiral_width/2+2);
+		sphere(r=dome_radius);
 		if (fill == NOFILL)
 		{
 			sphere(r=spiral_width/2-wall_width+1);
@@ -262,30 +304,67 @@ module pill_chute(clockwise, fill)
 		translate([0,0,-7])
 		rotate([0,-180,0])
 		cylinder(r=spiral_width,h=spiral_width+overlap);
+	}
+	
+	// blocking wall above doomed mouth.
+	// The blocking wall runs from the inner shell to the outer shell
+	// closing the gap above the doomed mouth so that pills can't bounce out
+	// above it.
+	
+	difference()
+	{
+		translate([-wall_width/2,-(outer_shell_radius-wall_width/2)
+			,height])
+		rotate([0,15,0])
+		cube([wall_width
+			, outer_shell_radius-inner_shell_radius + wall_width
+			, cartridge_lid_base - (height + bottom + 5)
+		]);
+
+		// fit the base of the blocking wall to the dome.
+		translate([0, -(outer_shell_radius-spiral_width/2)+1, height+7-overlap])
+		sphere(r=spiral_width/2-wall_width+1);
 
 	}
 }
 
 
-module shell(hidebase)
+module shell()
 {
 	// outer body
 	difference()
 	{
-		cylinder(r=body_radius, h=body_height);
+		cylinder(r=outer_shell_radius, h=outer_shell_height);
 		translate([0,0,wall_width+1])
-		cylinder(r=body_radius-wall_width, h=body_height);
+		cylinder(r=outer_shell_radius-wall_width, h=outer_shell_height);
 
-		if (hidebase)
+		if (show_shell_base==false)
 		{
 			translate([0,0,-1])
-			cylinder(r=body_radius-wall_width, h=body_height);
+			cylinder(r=outer_shell_radius-wall_width, h=outer_shell_height);
 		}
 			
 		carve_collector();
 	}
+
 }
 
+module inner_shell()
+{
+	cut_out_radius=cartridge_lid_base;
+
+	// inner body
+	difference()
+	{
+		cylinder(r=inner_shell_radius, h=inner_shell_height);
+		translate([0,0,-overlap])
+		cylinder(r=inner_shell_radius-wall_width/2, h=inner_shell_height+overlap*2);
+		translate([0,cut_out_radius/2+30,cartridge_lid_base+10])
+		sphere(r=cut_out_radius);
+	}
+	
+
+}
 
 /**
   * See saw mechanism to dump tablets that were not dispensed
@@ -322,74 +401,88 @@ module dump_bridge(angle)
 				}
 			}
 			// round the outer edge of the bridge to fit the external wall.
-			translate([-body_radius+width,0,-5])
-			cylinder(r=body_radius-wall_width-gap, h=15);
+			translate([-outer_shell_radius+width,0,-5])
+			cylinder(r=outer_shell_radius-wall_width-gap, h=15);
 		}
 		// round the inner edge of the bridge.
-		translate([-(body_radius-spiral_width)/2-22,0,-11])
-		cylinder(r=body_radius-spiral_width+gap*3, h=15);
+		translate([-(outer_shell_radius-spiral_width)/2-22,0,-11])
+		cylinder(r=outer_shell_radius-spiral_width+gap*3, h=15);
 	}
 }
 
 
-
-/**
- * Draws a spiral. The top spiral (stair) is aligned with the x-axis
- *  with the spiral wrapping around the z-axis towards the y-axis if 
- *  the spiral is clockwise or the -ve y-axis if the spiral is counter-clockwise.
- * The spiral is drawn as a series of steps. If there are enough stairs
- * then the spiral looks smooth.
- *
- * height - the hight of the spiral
- * steps - the more steps the finer the spiral and the longer it takes to draw.
- * width - the width of the spiral (the stairs)
- * thickness - the thickness of the spiral (under the stair tread if you like).
- * rotation - the degrees the spiral turns from top to the bottom.
- * internal radius - the radius from the z-axis to the inner edge of the
- * 		spiral (i.e. the clear space between the z-axis and the edge of the spiral.
- * 		Use zero for a spiral that goes to the centre of the z-axis.
- * clockwise - direction of the spiral 1 for clockwise -1 for anticlockwise
- */
-
-module spiral(height, steps, width, thickness, rotation, internal_radius, clockwise)
-{	
-	step_height = height/steps;
-	step_rotation = rotation/steps ;
+module drawer()
+{
+	drawer_depth=30;
+	drawer_width=60;
 	
-	translate([0,0,height])
+	translate([0,0,drawer_depth+wall_width])
+	rotate([0,180,0])
+	difference()
 	{
+	/*
+	 * outer drawer frame
+	 */ 
+		
 		difference()
 		{
-			for ( z = [0:steps-1]) 
-			{
-				rotate(z*step_rotation*-clockwise) 
-				translate([0,0,-z*step_height]) 
-				cube(size = [width+internal_radius,thickness,1], center = false);
+			translate([0,-drawer_width/2,0])
+			cube([85,drawer_width,drawer_depth]);
+			//overlap*2
+			translate([0,0,-overlap])
+			difference	()
+			{											 
+				cylinder(r=100,h=drawer_depth+overlap*2);
+				cylinder(r=75,h=drawer_depth);
 			}
-		
-			// cut out the inner radius
-			translate([0,0,-height])
-			cylinder(r=internal_radius,h=height+2);
 		}
-	}
+	
+	/*
+	 * Create the void inside the draw.
+	 */
+		
+		difference()
+		{
+			translate([0+wall_width,-drawer_width/2+wall_width,-overlap])
+			cube([85-wall_width*2,drawer_width-wall_width*2,drawer_depth+overlap-wall_width]);
+			//overlap*2
+			translate([0,0,-overlap])
+			difference	()
+			{											 
+				translate([0,0,-overlap])
+				cylinder(r=87,h=drawer_depth+overlap*2);
+				translate([0,0,-overlap])
+				cylinder(r=75-wall_width,h=drawer_depth+overlap*2);
+			}
+			//translate([0,0,-overlap])
+			//cylinder(r=hub_radius+wall_width,h=drawer_depth+overlap*2);
+			cylinder(r=inner_shell_radius+wall_width+gap*2,h=drawer_depth+overlap*2);
 
+
+		}
+
+			translate([0,0,-overlap])
+			cylinder(r=inner_shell_radius+gap*2,h=drawer_depth+overlap*2);
+
+	}
 }
+
+
 
 module cartridge()
 {
-		// Outer skin800
-
+	// Outer skin
 	difference()
 	{
 		translate([0,0,1])
-		cylinder(r=catridge_radius, h=catridge_height-3);
+		cylinder(r=cartridge_radius, h=cartridge_height-3);
 		translate([0,0,wall_width])
-		cylinder(r=catridge_radius-2, h=catridge_height);
+		cylinder(r=cartridge_radius-2, h=cartridge_height);
 		translate([0,0,-20])
-		cylinder(r=hub_radius-2, h=catridge_height+wall_width+100);
+		cylinder(r=hub_radius-2, h=cartridge_height+wall_width+100);
 		translate([0,0,0])
 		rotate([0,0,1.5])
-			wedge(catridge_height+wall_width, catridge_radius-wall_width, 360/14 - 3);
+		wedge(cartridge_height+wall_width, cartridge_radius-wall_width, 360/14 - 3);
 
 	
 
@@ -402,14 +495,14 @@ module cartridge()
 	difference()
 	{
 			translate([0,0,-1])
-			cylinder(r=0, r2=catridge_lid_radius-wall_width*2, h=100);
+			cylinder(r=0, r2=cartridge_lid_radius-wall_width*2, h=100);
 			translate([0,0,-3])
-			cylinder(r=catridge_lid_radius-wall_width-4, h=100);
+			cylinder(r=cartridge_lid_radius-wall_width-4, h=100);
 		translate([0,0,90])
 		rotate([0,0,1.5])
-			wedge(catridge_height+wall_width, catridge_radius-wall_width, 360/14 - 3);
+			wedge(cartridge_height+wall_width, cartridge_radius-wall_width, 360/14 - 3);
 		translate([0,0,-20])
-		cylinder(r=hub_radius-2, h=catridge_height+wall_width+100);	
+		cylinder(r=hub_radius-2, h=cartridge_height+wall_width+100);	
 
 	}
 
@@ -421,32 +514,32 @@ module cartridge()
 		for ( rot = [0 :  14])
 		{
 			rotate([0,0,(22 + 2) * rot])
-			cube([catridge_radius-1, wall_width, catridge_height]);
+			cube([cartridge_radius-1, wall_width, cartridge_height]);
 		}
 		
 		// remove the segments from the innner hub
 		translate([0,0,-10])
-		cylinder(r=hub_radius, h=catridge_height*2);	
+		cylinder(r=hub_radius, h=cartridge_height*2);	
 	}
 
 	// inner hub
 	difference()
 	{
-		cylinder(r=hub_radius, h=catridge_height-2);
+		cylinder(r=hub_radius, h=cartridge_height-2);
 
 		
 		translate([0,0,-10])
-		cylinder(r=hub_radius-2, h=catridge_height+10);	
+		cylinder(r=hub_radius-2, h=cartridge_height+10);	
 	}
 
 
 	// add little tags to make it easy to extract the cartridge
 	rotate([0,0,90])
-	translate([hub_radius,0,-1])
+	translate([hub_radius,0,-1+overlap])
 	cylinder(r=hub_radius/3, h=wall_width);
 
 	rotate([0,0,270])
-	translate([hub_radius,0,-1])
+	translate([hub_radius,0,-1+overlap])
 	cylinder(r=hub_radius/3, h=wall_width);
 }
 
@@ -480,17 +573,17 @@ module cartridge_hub_cap()
 		translate([0,0,-wall_width*3])
 		difference()
 		{
-			cylinder(r=motor_shaft_radius, h=catridge_height+wall_width*8);
+			cylinder(r=motor_shaft_radius, h=cartridge_height+wall_width*8);
 			translate([motor_shaft_radius/2, -motor_shaft_radius,5 ])			
 			cube([motor_shaft_radius*2,motor_shaft_radius*2, motor_shaft_radius*3]);
 		}
 		
 
 		// prongs wholes for fork connector
-		translate([raised_hub_radius/2, 0,-4])
+		translate([raised_hub_radius/2, 0,-4+overlap])
 		cylinder(r=prong_radius, h=prong_height);
 	
-		translate([-raised_hub_radius/2, 0,-4])
+		translate([-raised_hub_radius/2, 0,-4+overlap])
 		cylinder(r=prong_radius, h=prong_height);
 
 	}
@@ -506,7 +599,7 @@ module cartridge_hub_cap()
  *   the number of dispensing actions.
  * 3) The fork prongs may make it easier to insert the cartridge.
  */
-module fork_connector()
+module motor_connector()
 {
 
 
@@ -529,7 +622,7 @@ module fork_connector()
 		translate([0,0,-wall_width*3])
 		difference()
 		{
-			cylinder(r=motor_shaft_radius, h=catridge_height+wall_width*8);
+			cylinder(r=motor_shaft_radius, h=cartridge_height+wall_width*8);
 			translate([motor_shaft_radius/2, -motor_shaft_radius, 0])
 			cube([motor_shaft_radius*2,motor_shaft_radius*2, motor_shaft_radius*2]);
 		}
@@ -537,55 +630,60 @@ module fork_connector()
 
 }
 
-module catridge_lid()
+module cartridge_lid()
 {
-	difference()
-	{
-		cylinder(r=catridge_lid_radius, h=canister_height);
-		translate([0,0,-wall_width])
+	// set the default draw location centre to 0,0,0
+	translate([0,0,canister_height])
+	rotate([180,0,-79])
+	{	
+		difference()
 		{
-			// hollow out the main cylinder
-			cylinder(r=catridge_lid_radius-wall_width*2, h=canister_height);
-
-			//rotate(-7)
-			difference()
+			cylinder(r=cartridge_lid_radius, h=canister_height);
+			translate([0,0,-wall_width])
 			{
-			// First wedge for pill cavity is a complete cut through
-			wedge(canister_height+10, catridge_lid_radius-wall_width-2, 360/14 - 2);
-			cylinder(r=catridge_lid_radius/3, h=canister_height+10);
+				// hollow out the main cylinder
+				cylinder(r=cartridge_lid_radius-wall_width*2, h=canister_height);
+	
+				//rotate(-7)
+				difference()
+				{
+				// First wedge for pill cavity is a complete cut through
+				wedge(canister_height+10, cartridge_lid_radius-wall_width-2, 360/14 - 2);
+				cylinder(r=cartridge_lid_radius/3, h=canister_height+10);
+				}
 			}
+	
+		// whole to engage the central hub of the cartridge.
+		// central raised hob - used to engage with lid
+		translate([0,0,canister_height-4])
+		cylinder(r=hub_radius-4, h=wall_width*3+overlap);
+			
 		}
-
-	// whole to engage the central hub of the catridge.
-	// central raised hob - used to engage with lid
-	translate([0,0,canister_height-4])
-	cylinder(r=hub_radius-4, h=wall_width*3+overlap);
-		
-	}
-
-	// Add a segmented rim around the inside edge which
-	// snaps beind the cartridge to hold the cartridge in place.
-	difference()
-	{
-		cylinder(r=catridge_lid_radius, h=wall_width*4);
-		translate([0,0,-3])
-		cylinder(r=catridge_lid_radius-wall_width*4, h=wall_width*6);
-
-		// we just want three lips left so lets cut some wedges out.
-		translate([0,0,-1])
-		wedge(canister_height+10, catridge_lid_radius-wall_width-2, 100);
-		translate([0,0,-1])
-		rotate([0,0,120])
-		wedge(canister_height+10, catridge_lid_radius-wall_width-2, 100);
-		translate([0,0,-1])
-		rotate([0,0,240])
-		wedge(canister_height+10, catridge_lid_radius-wall_width-2, 100);
-		
-		// campher the edges to 45 degrees - so we can 3d print.
-		translate([0,0,-canister_height*2-2])
-		cylinder(r=0, r2=catridge_lid_radius-wall_width*2, h=100);
-		translate([0,0,5])
-		cylinder(r=catridge_lid_radius-wall_width-2, h=wall_width*6);
+	
+		// Add a segmented rim around the inside edge which
+		// snaps beind the cartridge to hold the cartridge in place.
+		difference()
+		{
+			cylinder(r=cartridge_lid_radius, h=wall_width*4);
+			translate([0,0,-3])
+			cylinder(r=cartridge_lid_radius-wall_width*4, h=wall_width*6);
+	
+			// we just want three lips left so lets cut some wedges out.
+			translate([0,0,-1])
+			wedge(canister_height+10, cartridge_lid_radius-wall_width-2, 100);
+			translate([0,0,-1])
+			rotate([0,0,120])
+			wedge(canister_height+10, cartridge_lid_radius-wall_width-2, 100);
+			translate([0,0,-1])
+			rotate([0,0,240])
+			wedge(canister_height+10, cartridge_lid_radius-wall_width-2, 100);
+			
+			// campher the edges to 45 degrees - so we can 3d print.
+			translate([0,0,-canister_height*2-2])
+			cylinder(r=0, r2=cartridge_lid_radius-wall_width*2, h=100);
+			translate([0,0,5])
+			cylinder(r=cartridge_lid_radius-wall_width-2, h=wall_width*6);
+		}
 	}
 }
 
@@ -620,7 +718,7 @@ module collector()
 ////		// carve out the pill chute
 //			translate([0,0,30])
 //			rotate([0,0,20])
-//			spiral_tube(height, 100, spiral_width, 3, 60, body_radius-spiral_width/2-overlap,-1);
+//			spiral_tube(height, 100, spiral_width, 3, 60, outer_shell_radius-spiral_width/2-overlap,-1);
 		
 
 	}
@@ -628,7 +726,7 @@ module collector()
 
 module carve_collector()
 {
-	translate([body_radius, 20,collector_end_radius])
+	translate([outer_shell_radius, 20,collector_end_radius])
 	internal_carve_collector();
 }
 
@@ -647,7 +745,7 @@ module internal_carve_collector()
 
 module pie()
 {
-	translate([-body_radius+50, body_radius-10,95])
+	translate([-outer_shell_radius+50, outer_shell_radius-10,95])
 	rotate([90,90,0])
 	{
 		pie_brackets();
@@ -684,16 +782,17 @@ module motor()
 {
 	color("grey")
 	{
-	// body
-	cylinder(r=12.5, h=72);
 
-	// shaft
-	translate([0,0,72])
-	cylinder(r=2, h=20);
-
-	// collar
-	translate([0,0,72])
-	cylinder(r=4, h=4);
+		// body
+		cylinder(r=motor_radius, h=motor_height);
+	
+		// shaft
+		translate([0,0,motor_height])
+		cylinder(r=motor_shaft_radius, h=motor_shaft_height);
+	
+		// collar
+		translate([0,0,motor_height])
+		cylinder(r=motor_collar_radius, h=4);
 	}
 	
 }
