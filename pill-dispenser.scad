@@ -181,7 +181,7 @@ module body()
 	if (show_dump_bridge)
 	{
 		translate([0,-spiral_width-10,dump_bridge_height])
-		dump_bridge(-32);
+		dump_bridge(0);
 	}
 
 	// place the rapberry pie mount.
@@ -232,7 +232,7 @@ module dump_chute(clockwise, fill)
 
 	}
 
-	// blocking wall above doomed mouth.
+	// blocking wall above domed mouth.
 	// The blocking wall runs from the inner shell to the outer shell
 	// closing the gap above the doomed mouth so that pills can't bounce out
 	// above it.
@@ -255,6 +255,14 @@ module dump_chute(clockwise, fill)
 
 	}
 
+}
+
+/** mounting for the dump chute server as well as the interconnection widget
+ * Link to potential servo.
+ * http://www.ebay.com.au/itm/Spring-RC-SM-S4306R-Continuous-Rotation-Robot-Servo-15KG-360-degree-for-Robot-/221642671116?pt=LH_DefaultDomain_0&hash=item339aeec40c 
+ */
+module dump_chute_servo()
+{
 }
 
 
@@ -376,7 +384,7 @@ module dump_bridge(angle)
 {	
 	width = spiral_width;
 	length = 40;
-	axle_radius = 1.5;
+	axle_radius = 3;
 
 	color("grey")
 	
@@ -388,25 +396,53 @@ module dump_bridge(angle)
 			union()
 			translate([0,-length/2,0])
 			{
+				// flat plate of the dump bridge
 				cube([width,length,wall_width]);
 			
+
+				// pivot connector
+				translate([axle_radius+2+gap,length/2-axle_radius,-axle_radius*2+overlap])
+				cube([width-axle_radius*4-gap*2,axle_radius*2,axle_radius*2]);
 				// centre pivot for the bridge.
-				translate([0,length/2,-1.5])
+				translate([0,length/2,-axle_radius*2])
 				rotate([0,90,0])
-				difference()
-				{
-					cylinder(r=3, h=width);
-					translate([0,0,-gap])
-					cylinder(r=axle_radius, h=width+gap*2);
-				}
+				cylinder(r=axle_radius, h=width);
 			}
 			// round the outer edge of the bridge to fit the external wall.
-			translate([-outer_shell_radius+width,0,-5])
+			translate([-outer_shell_radius+width,0,-10])
 			cylinder(r=outer_shell_radius-wall_width-gap, h=15);
 		}
 		// round the inner edge of the bridge.
 		translate([-(outer_shell_radius-spiral_width)/2-22,0,-11])
 		cylinder(r=outer_shell_radius-spiral_width+gap*3, h=15);
+	}
+
+	// pivot mounts for the bridge.
+
+	// mount on inner shell
+	translate([0,0,-axle_radius*2])
+	rotate([90,0,0])
+	difference()
+	{
+		cylinder(r=axle_radius*2, h=5, r2=axle_radius+gap*2);
+		translate([-axle_radius+gap,0,-10])
+		cube([axle_radius*2-gap*2, axle_radius*2, 50]);
+		translate([0,0,-overlap])
+		cylinder(r=axle_radius+gap, h=10);
+	}
+
+
+	// mount on outer shell
+	translate([0	, -width+overlap*2,-axle_radius*2])
+	rotate([90,0,180])
+	difference()
+	{
+		cylinder(r=axle_radius*2, h=5, r2=axle_radius+gap*2);
+		translate([-axle_radius+gap,2,-overlap])
+		
+		cube([axle_radius*2-gap*2, axle_radius*2, 50]);	
+		translate([0,0,-overlap])
+		cylinder(r=axle_radius+gap, h=10);
 	}
 }
 
@@ -648,12 +684,13 @@ module cartridge_lid()
 				difference()
 				{
 				// First wedge for pill cavity is a complete cut through
-				wedge(canister_height+10, cartridge_lid_radius-wall_width-2, 360/14 - 2);
-				cylinder(r=cartridge_lid_radius/3, h=canister_height+10);
+				wedge(canister_height+10, cartridge_lid_radius-wall_width-4, 360/14 - 2);
+				//cylinder(r=cartridge_lid_radius/3, h=canister_height+10);
+				cylinder(r=inner_shell_radius, h=canister_height+10);
 				}
 			}
 	
-		// whole to engage the central hub of the cartridge.
+		// hole to engage the central hub of the cartridge.
 		// central raised hob - used to engage with lid
 		translate([0,0,canister_height-4])
 		cylinder(r=hub_radius-4, h=wall_width*3+overlap);
