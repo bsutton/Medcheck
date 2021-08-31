@@ -1,6 +1,8 @@
 include <raspberry-pie-mount.scad>
 include <raspberry-pie-model.scad>
 include <spiral.scad>
+include <servo_mockup.scad>
+
 /**
  * Terms
  * cartridge - A cylindrical segmented container designed to hold pills.
@@ -31,15 +33,16 @@ show_inner_shell = true;
 show_cartridge = true;
 show_cartridge_lid = true;
 show_cartridge_hub = true;
-show_motor_connector = true;
-show_motor = true;
-show_pie = true;
-show_pie_mount = true;
+show_motor_connector = false;
+show_motor = false;
+show_pie = false;
+show_pie_mount = false;
 show_drawer = true;
 show_collector = true;
 show_dump_bridge = true;
 show_pill_chute = true;
 show_dump_chute = true;
+show_dump_servo=true;
 
 
 // diameter of the outer body cylinder
@@ -72,8 +75,6 @@ inner_shell_height=cartridge_lid_base-gap;
 collector_end_radius=37;
 collector_centre_width=outer_shell_radius/2;
 
-
-
 prong_height=10;
 prong_radius = 4;
 
@@ -95,6 +96,27 @@ motor_shaft_height = 20;
 motor_shaft_radius=2;	
 motor_base = dump_bridge_height-motor_height+10;
 
+// metrics for dump bridge servo
+
+dump___servo_width = 12.5;
+dump___servo_length = 22.9;
+dump___servo_height = 22.9;
+dump___frame_length = 32.2;
+dump___frame_thickness = 2.45;
+dump___frame_v_offset = 18.5;
+dump___mounting_hole_diameter = 2;
+dump___mounting_hole_slot = 1;
+dump___mounting_hole_center_x_offset = dump___servo_width/2;
+dump___mounting_hole_center_y_offset = dump___mounting_hole_slot + dump___mounting_hole_diameter / 2 ;
+dump___axle_diameter = 4.82;
+dump___axle_height = 3.9;
+dump___axle_screw_diameter = 2;
+dump___turret_diameter = 11.7;
+dump___turret_x_margin = (dump___servo_width - dump___turret_diameter) / 2;
+dump___turret_y_margin = dump___servo_length - dump___turret_diameter;
+dump___turret_height = 5.2;
+
+
 function saw(t) = 1 - 2*abs(t-0.5);
 
 whole_unit();
@@ -102,6 +124,58 @@ whole_unit();
 
 module whole_unit()
 {
+
+
+// diameter of the outer body cylinder
+echo("gap=0.5");
+echo("overlap = 1"); 
+echo("wall_width=3");
+echo("outer_shell_radius = 80");
+echo("outer_shell_height=160");
+
+echo("pie_mount_height=80");
+echo("pie_mount_width = 50");
+
+echo("spiral_width = 35");
+echo("spiral_height = 120");
+
+echo("dump_bridge_height = ", spiral_height-13);
+
+
+
+echo("cartridge_lid_radius = ",outer_shell_radius-wall_width-gap);
+echo("cartridge_radius = ", cartridge_lid_radius-wall_width*2-gap);
+
+// the hieght of the bottom of the cartridge
+echo("cartridge_lid_base=",spiral_height);
+
+echo("inner_shell_radius=",outer_shell_radius-spiral_width+gap*2);
+echo("inner_shell_height=",cartridge_lid_base-gap);
+
+
+echo("collector_end_radius=37");
+echo("collector_centre_width=",outer_shell_radius/2);
+
+echo("prong_height=10");
+echo("prong_radius = 4");
+
+echo("hub_radius = ",(cartridge_radius+2)/3);
+
+// the .25 is so the raised hub is slight smaller than the lid whole
+echo("raised_hub_radius = ",hub_radius-4.25);
+
+echo("canister_height=43");
+echo("cartridge_height=38");
+
+// The height of the motor from the base of the shell
+
+echo("motor_height=72");
+echo("motor_radius = 12.5");
+echo("motor_collar_height =4");
+echo("motor_collar_radius =4");
+echo("motor_shaft_height = 20");
+echo("motor_shaft_radius=2");	
+echo("motor_base = ",dump_bridge_height-motor_height+10);
 	
 	body();
 	
@@ -184,6 +258,13 @@ module body()
 		dump_bridge(0);
 	}
 
+	if (show_dump_servo)
+	{
+		translate([0,-inner_shell_radius,dump_bridge_height])
+		rotate([90, 0, -0])
+		dump_chute_servo();
+	}
+
 	// place the rapberry pie mount.
 	if (show_pie)
 		pie();
@@ -263,6 +344,25 @@ module dump_chute(clockwise, fill)
  */
 module dump_chute_servo()
 {
+  servo_mockup(
+    servo_width = dump___servo_width,
+    servo_length = dump___servo_length,
+    servo_height = dump___servo_height,
+    frame_length = dump___frame_length,
+    frame_thickness = dump___frame_thickness,
+    frame_v_offset = dump___frame_v_offset,
+    mounting_hole_diameter = dump___mounting_hole_diameter,
+    mounting_hole_center_x_offset = dump___mounting_hole_center_x_offset,
+    mounting_hole_center_y_offset = dump___mounting_hole_center_y_offset,
+    mounting_hole_slot = dump___mounting_hole_slot,
+    axle_diameter = dump___axle_diameter,
+    axle_height = dump___axle_height,
+    axle_is_round = true,
+    turret_diameter = dump___turret_diameter,
+    turret_x_margin = dump___turret_x_margin,
+    turret_y_margin = dump___turret_y_margin,
+    turret_height = dump___turret_height,
+    centered=true);
 }
 
 
@@ -385,9 +485,11 @@ module dump_bridge(angle)
 	width = spiral_width;
 	length = 40;
 	axle_radius = 3;
+	servo_connector_radius=4;
 
 	color("grey")
 	
+	// build the bridge
 	rotate([angle,0,-90])
 	difference()
 	{
@@ -407,6 +509,17 @@ module dump_bridge(angle)
 				translate([0,length/2,-axle_radius*2])
 				rotate([0,90,0])
 				cylinder(r=axle_radius, h=width);
+
+				// Servo connector
+				translate([0,length,-axle_radius])
+				rotate([0,90,0])
+				difference()
+				{
+					cylinder(r=servo_connector_radius, h=4);
+					translate([0, 0,-overlap])
+					cylinder(r=servo_connector_radius/2, h=6);
+				}
+
 			}
 			// round the outer edge of the bridge to fit the external wall.
 			translate([-outer_shell_radius+width,0,-10])
@@ -444,6 +557,8 @@ module dump_bridge(angle)
 		translate([0,0,-overlap])
 		cylinder(r=axle_radius+gap, h=10);
 	}
+
+	
 }
 
 
@@ -833,6 +948,10 @@ module motor()
 	}
 	
 }
+
+
+
+
 
 
 module wedge_180(h, r, d)
